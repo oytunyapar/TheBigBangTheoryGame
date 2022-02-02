@@ -77,8 +77,8 @@ bool UdpServer::write(const char* data, size_t data_size, pair<uint32_t,uint16_t
     client_address.sin_addr.s_addr = client.first;
 
     auto sent_size = sendto(m_socket_fd, (const char *)data, data_size,
-                            MSG_CONFIRM, (const struct sockaddr *) &client,
-                            sizeof(client));
+                            MSG_CONFIRM, (const struct sockaddr *) &client_address,
+                            sizeof(client_address));
 
     return data_size == sent_size;
 }
@@ -175,12 +175,49 @@ void UdpServer::leaveClient(pair<uint32_t,uint16_t> sender)
     if(m_player_timeouts.find(sender) != m_player_timeouts.end())
     {
         m_player_timeouts.erase(sender);
+
+        if(m_game_session_ids.find(sender) != m_game_session_ids.end())
+        {
+            auto session_id = m_game_session_ids[sender];
+            m_game_session_ids.erase(sender);
+            pair<uint32_t,uint16_t> second_player;
+            for(const auto item: m_game_session_ids)
+            {
+                if(item.second == session_id)
+                {
+                    second_player = item.first;
+                }
+            }
+
+            m_game_session_ids.erase(second_player);
+
+            char result[2];
+            result[0] = RESULT;
+            result[1] = WIN;
+            write(result, 2, second_player);
+        }
     }
 }
 
 void UdpServer::gameResult(GameResultObject result)
 {
+    char result_buffer[2];
 
+    if(result.status == FINISHED_TIE)
+    {
+        result_buffer[0] = RESULT;
+        result_buffer[1] = TIE;
+        write(result_buffer, 2, result.loser);
+        write(result_buffer, 2, result.winner);
+    }
+    else if (result.status == FINISHED_WINNER)
+    {
+        result_buffer[0] = RESULT;
+        result_buffer[1] = WIN;
+        write(result_buffer, 2, result.winner);
+        result_buffer[1] = LOST;
+        write(result_buffer, 2, result.loser);
+    }
 }
 
 void UdpServer::createServerApplication()

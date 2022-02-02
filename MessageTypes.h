@@ -11,3 +11,9 @@ enum MessageTypes
     RESULT,
     LEAVE
 };
+
+enum Result{
+    WIN,
+    LOST,
+    TIE
+};

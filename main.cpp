@@ -8,49 +8,103 @@ using namespace std;
 int main() {
     const uint16_t port = 50000;
 
-    auto server_application = [](vector<char> received_data, vector<char>& reply)
-    {
-        auto received_data_size = received_data.size();
-        auto reply_capacity = reply.capacity();
-        if(received_data_size > 0 && reply_capacity > 0)
-        {
-            if(received_data[0] == 'a')
-            {
-                reply.emplace_back('b');
-            }
-            else if (received_data[0] == 'b')
-            {
-                reply.emplace_back('a');
-            }
-        }
-    };
+    const auto buffer_size = 2;
+    char* buffer = new char[buffer_size];
 
     UdpServer udpServer(port);
-    UdpClient udpClient(port,"127.0.0.1");
+    UdpClient firstPlayer(port,"127.0.0.1");
+    UdpClient secondPlayer(port,"127.0.0.1");
 
-    const auto buffer_size = 10;
-    char* buffer = new char[buffer_size];
-    buffer[0] = 'a';
-    buffer[1] = 'b';
+    bool firstGameStarted = false;
+    char firstResult;
+    auto firstPlayerRead = [&firstGameStarted, &firstResult](vector<char> data){
+        if(data[0] == GAME_STARTED)
+        {
+            firstGameStarted = true;
+        }
+        else if(data[0] == RESULT)
+        {
+            firstResult = data[1];
+        }
+    };
+    firstPlayer.setReadCallback(firstPlayerRead);
 
-    auto clientRead = [](vector<char> data){ cout << "Reply received:" << data[0] << endl;};
-    udpClient.setReadCallback(clientRead);
+    bool secondGameStarted = false;
+    char secondResult;
+    auto secondPlayerRead = [&secondGameStarted, &secondResult](vector<char> data){
+        if(data[0] == GAME_STARTED)
+        {
+            secondGameStarted = true;
+        }
+        else if(data[0] == RESULT)
+        {
+            secondResult = data[1];
+        }
+    };
+    secondPlayer.setReadCallback(secondPlayerRead);
 
     this_thread::sleep_for(chrono::seconds (1));
 
-    udpClient.write(buffer, buffer_size);
+    buffer[0] = JOIN;
+    firstPlayer.write(buffer, 1);
+    secondPlayer.write(buffer, 1);
 
     this_thread::sleep_for(chrono::seconds (1));
 
-    buffer[0] = 'b';
-    buffer[1] = 'a';
-    udpClient.write(buffer, buffer_size);
-    this_thread::sleep_for(chrono::seconds (1));
+    if(firstGameStarted && secondGameStarted)
+    {
+        cout << "Game started" << endl;
+        buffer[0] = CHOICE;
+        buffer[1] = SCISSORS;
+        firstPlayer.write(buffer, 2);
 
-    buffer[0] = 'c';
-    buffer[1] = 'a';
-    udpClient.write(buffer, buffer_size);
-    this_thread::sleep_for(chrono::seconds (1));
+        buffer[0] = CHOICE;
+        buffer[1] = PAPER;
+        secondPlayer.write(buffer, 2);
+
+        this_thread::sleep_for(chrono::seconds (1));
+
+        if(firstResult == WIN)
+        {
+            cout << "First wins" << endl;
+        }
+
+        if(secondResult == LOST)
+        {
+            cout << "Second lost" << endl;
+        }
+
+        cout << "Game started" << endl;
+        buffer[0] = CHOICE;
+        buffer[1] = SCISSORS;
+        firstPlayer.write(buffer, 2);
+
+        buffer[0] = CHOICE;
+        buffer[1] = SPOCK;
+        secondPlayer.write(buffer, 2);
+
+        this_thread::sleep_for(chrono::seconds (1));
+
+        if(firstResult == LOST)
+        {
+            cout << "First lost" << endl;
+        }
+
+        if(secondResult == WIN)
+        {
+            cout << "Second wins" << endl;
+        }
+
+        buffer[0] = LEAVE;
+        secondPlayer.write(buffer, 1);
+
+        this_thread::sleep_for(chrono::seconds (1));
+
+        if(firstResult == WIN)
+        {
+            cout << "First win" << endl;
+        }
+    }
 
     delete buffer;
 
