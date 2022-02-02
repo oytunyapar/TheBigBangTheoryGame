@@ -54,6 +54,8 @@ int main() {
     if(firstGameStarted && secondGameStarted)
     {
         cout << "Game started" << endl;
+
+        //First round of the game
         buffer[0] = CHOICE;
         buffer[1] = SCISSORS;
         firstPlayer.write(buffer, 2);
@@ -74,7 +76,7 @@ int main() {
             cout << "Second lost" << endl;
         }
 
-        cout << "Game started" << endl;
+        //Second round of the game
         buffer[0] = CHOICE;
         buffer[1] = SCISSORS;
         firstPlayer.write(buffer, 2);
@@ -95,6 +97,7 @@ int main() {
             cout << "Second wins" << endl;
         }
 
+        //Second player leaves, so first player wins
         buffer[0] = LEAVE;
         secondPlayer.write(buffer, 1);
 

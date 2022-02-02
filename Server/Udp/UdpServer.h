@@ -43,6 +43,8 @@ private:
     map<pair<uint32_t,uint16_t>, uint32_t> m_game_session_ids;
     map<uint32_t, GameSession> m_game_sessions;
 
+    chrono::milliseconds m_player_timeout;
+
     bool m_server_thread_active;
     std::thread m_server_thread;
 

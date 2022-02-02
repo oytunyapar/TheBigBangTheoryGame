@@ -15,7 +15,8 @@ using namespace std;
 UdpServer::UdpServer(const uint16_t port):
         m_socket_fd(0),
         m_port(port),
-        m_server_thread_active(false)
+        m_server_thread_active(false),
+        m_player_timeout(60000)
 {
     memset(&m_client_address, 0, sizeof(m_client_address));
     m_reply_buffer.reserve(m_max_udp_packet_size);
@@ -242,6 +243,18 @@ void UdpServer::createServerApplication()
                 pair<uint32_t,uint16_t> sender{m_client_address.sin_addr.s_addr, m_client_address.sin_port};
                 if (bufferToVector(data)) {
                     processRequest(data, sender);
+                }
+            }
+
+            for(const auto item: m_player_timeouts)
+            {
+                std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+                auto duration = now.time_since_epoch();
+                auto current_time_in_milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+                if((current_time_in_milliseconds - item.second) > m_player_timeout)
+                {
+                    leaveClient(item.first);
                 }
             }
 
