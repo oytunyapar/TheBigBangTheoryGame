@@ -25,7 +25,7 @@ int main() {
         }
     };
 
-    UdpServer udpServer(port, server_application);
+    UdpServer udpServer(port);
     UdpClient udpClient(port,"127.0.0.1");
 
     const auto buffer_size = 10;

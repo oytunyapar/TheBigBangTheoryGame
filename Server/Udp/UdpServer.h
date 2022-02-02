@@ -11,14 +11,19 @@
 
 #include <netinet/in.h>
 
-using namespace std;
+#include <map>
+#include <chrono>
+#include <queue>
 
-using ServerApplicationType = function<void(vector<char>, vector<char>&)>;
+#include "GameSession.h"
+#include "MessageTypes.h"
+
+using namespace std;
 
 class UdpServer
 {
 public:
-    UdpServer(const uint16_t port, ServerApplicationType serverApplication);
+    UdpServer(const uint16_t port);
     ~UdpServer();
 
 private:
@@ -28,14 +33,26 @@ private:
     vector<char> m_reply_buffer;
 
     int m_socket_fd;
-    ServerApplicationType m_callback;
     sockaddr_in m_client_address;
     socklen_t m_client_address_length = sizeof(sockaddr_in);
+
+    queue<pair<uint32_t,uint16_t>> m_waiting_queue;
+    map<pair<uint32_t,uint16_t>, chrono::milliseconds> m_player_timeouts;
+
+    uint32_t m_last_game_session_id = 0;
+    map<pair<uint32_t,uint16_t>, uint32_t> m_game_session_ids;
+    map<uint32_t, GameSession> m_game_sessions;
 
     bool m_server_thread_active;
     std::thread m_server_thread;
 
-    bool write(const char* data, size_t data_size);
+    void processRequest(vector<char>& data, pair<uint32_t,uint16_t> sender);
+
+    void joinClient(pair<uint32_t,uint16_t> sender);
+    void leaveClient(pair<uint32_t,uint16_t> sender);
+    void gameResult(GameResultObject result);
+
+    bool write(const char* data, size_t data_size, pair<uint32_t,uint16_t>& sender);
     void createSocket();
     void bindSocket();
     void createServerApplication();
